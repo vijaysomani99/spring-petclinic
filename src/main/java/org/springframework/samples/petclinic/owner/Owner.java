@@ -172,4 +172,9 @@ public class Owner extends Person {
 		pet.addVisit(visit);
 	}
 
+	public void setPets(List<Pet> pets) {
+		this.pets.clear();
+		this.pets.addAll(pets);
+	}
+
 }

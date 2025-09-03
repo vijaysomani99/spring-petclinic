@@ -19,17 +19,15 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -171,6 +169,76 @@ class PetController {
 			owner.addPet(pet);
 		}
 		this.owners.save(owner);
+	}
+
+	// In
+	// `spring-petclinic/src/main/java/org/springframework/samples/petclinic/owner/PetController.java`
+
+	@PostMapping("/v1/pets")
+	public ResponseEntity<Optional<Pet>> createPetData(@PathVariable("ownerId") int ownerId,
+			@Valid @RequestBody Pet petDto) {
+		Optional<Owner> ownerOpt = owners.findById(ownerId);
+		if (!ownerOpt.isPresent()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Optional.empty());
+		}
+
+		Optional<PetType> typeOpt = types.findById(petDto.getType().getId());
+		if (!typeOpt.isPresent()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.empty());
+		}
+
+		Pet pet = new Pet();
+		pet.setName(petDto.getName());
+		pet.setBirthDate(petDto.getBirthDate());
+		pet.setType(typeOpt.get());
+
+		Owner owner = ownerOpt.get();
+		owner.addPet(pet);
+		owners.save(owner);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(Optional.of(pet));
+	}
+
+	/**
+	 * Retrieves a pet by its ID for a given owner.
+	 * @param ownerId the ID of the owner
+	 * @param petId the ID of the pet to retrieve
+	 * @return the Pet object if found
+	 * @throws IllegalArgumentException if the owner is not found
+	 *
+	 */
+	@GetMapping("/pets/{id}")
+	public ResponseEntity<Optional<Pet>> getPetDetails(@Valid @PathVariable("ownerId") int ownerId,
+			@Valid @PathVariable("id") int petId) {
+		Optional<Owner> ownerOpt = owners.findById(ownerId);
+		if (!ownerOpt.isPresent()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Optional.empty());
+		}
+		Pet pet = ownerOpt.get().getPet(petId);
+		return ResponseEntity.ok(Optional.ofNullable(pet));
+	}
+
+	/**
+	 * Saves a new pet or updates an existing pet for the given owner.
+	 * @param the Owner object to which the pet belongs
+	 * @param pet the Pet object to save or update
+	 * @return ResponseEntity with HTTP status 200 (OK) if successful
+	 */
+
+	@PostMapping("/v1/pets/saveOrUpdatePet")
+	public ResponseEntity<Owner> saveOrUpdatePet(Owner owner, Pet pet) {
+		Pet existingPet = owner.getPet(pet.getId());
+		if (existingPet != null) {
+			// Update existing pet's properties
+			existingPet.setName(pet.getName());
+			existingPet.setBirthDate(pet.getBirthDate());
+			existingPet.setType(pet.getType());
+		}
+		else {
+			owner.addPet(pet);
+		}
+		this.owners.save(owner);
+		return ResponseEntity.ok().build();
 	}
 
 }

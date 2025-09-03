@@ -20,10 +20,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
 import org.springframework.samples.petclinic.owner.OwnerRepository;
 import org.springframework.test.context.aot.DisabledInAotMode;
@@ -31,15 +33,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 /**
  * Test class for the {@link PetController}
@@ -208,6 +210,92 @@ class PetControllerTests {
 				.andExpect(view().name("pets/createOrUpdatePetForm"));
 		}
 
+	}
+
+	@Test
+	void testGetPetDetails() throws Exception {
+		Pet pet = new Pet();
+		pet.setId(TEST_PET_ID);
+		pet.setName("petty");
+		pet.setBirthDate(LocalDate.of(2015, 2, 12));
+		PetType type = new PetType();
+		type.setId(3);
+		type.setName("hamster");
+		pet.setType(type);
+		Owner owner = new Owner();
+		owner.setId(TEST_OWNER_ID);
+		List<Pet> pets = new ArrayList<>();
+		pets.add(pet);
+		owner.setPets(pets);
+		owner.addPet(pet);
+		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(owner));
+
+		mockMvc.perform(get("/owners/{ownerId}/pets/{id}", TEST_OWNER_ID, TEST_PET_ID))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.id").value(TEST_PET_ID))
+			.andExpect(jsonPath("$.name").value("petty"))
+			.andExpect(jsonPath("$.type.name").value("hamster"));
+	}
+
+	@Test
+	void testGetPetDetailsNotFound() throws Exception {
+		Owner owner = new Owner();
+		owner.setId(TEST_OWNER_ID);
+		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(owner));
+
+		mockMvc.perform(get("/owners/{ownerId}/pets/{id}", TEST_OWNER_ID, 999))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$").doesNotExist());
+	}
+
+	@Test
+	void testSaveOrUpdatePetSuccess() throws Exception {
+		PetType type = new PetType();
+		type.setId(3);
+		type.setName("hamster");
+
+		Pet pet = new Pet();
+		pet.setId(TEST_PET_ID);
+		pet.setName("petty");
+		pet.setBirthDate(LocalDate.of(2015, 2, 12));
+		pet.setType(type);
+		List<Pet> pets = new ArrayList<>();
+		Owner owner = new Owner();
+		owner.setId(TEST_OWNER_ID);
+		owner.setPets(pets);
+		owner.addPet(pet);
+
+		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(owner));
+
+		mockMvc
+			.perform(post("/owners/{ownerId}/v1/pets/saveOrUpdatePet", TEST_OWNER_ID)
+				.param("id", String.valueOf(TEST_PET_ID))
+				.param("name", "petty")
+				.param("birthDate", "2015-02-12")
+				.param("type", "hamster"))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void testCreatePetData() throws Exception {
+		PetType type = new PetType();
+		type.setId(3);
+		type.setName("hamster");
+
+		Owner owner = new Owner();
+		owner.setId(TEST_OWNER_ID);
+
+		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(owner));
+		given(this.types.findById(type.getId())).willReturn(Optional.of(type));
+
+		String petJson = "{ \"name\": \"Betty\", \"birthDate\": \"2015-02-12\", \"type\": { \"id\": 3 } }";
+
+		mockMvc
+			.perform(post("/owners/{ownerId}/v1/pets", TEST_OWNER_ID).contentType("application/json").content(petJson))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.name").value("Betty"))
+			.andExpect(jsonPath("$.type.id").value(3))
+			.andExpect(jsonPath("$.birthDate").value("2015-02-12"));
 	}
 
 }
