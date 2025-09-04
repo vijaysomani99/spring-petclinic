@@ -51,3 +51,10 @@ INSERT INTO visits VALUES (default, 7, '2013-01-01', 'rabies shot');
 INSERT INTO visits VALUES (default, 8, '2013-01-02', 'rabies shot');
 INSERT INTO visits VALUES (default, 8, '2013-01-03', 'neutered');
 INSERT INTO visits VALUES (default, 7, '2013-01-04', 'spayed');
+
+INSERT INTO attributes VALUES (DEFAULT, 1, 'independent', 46.0, 4.5); -- cat
+INSERT INTO attributes VALUES (DEFAULT, 2, 'loyal', 60.0, 20.0);      -- dog
+INSERT INTO attributes VALUES (DEFAULT, 3, 'calm', 25.0, 0.15);      -- lizard
+INSERT INTO attributes VALUES (DEFAULT, 4, 'quiet', 120.0, 2.5);     -- snake
+INSERT INTO attributes VALUES (DEFAULT, 5, 'social', 18.0, 0.05);    -- bird
+INSERT INTO attributes VALUES (DEFAULT, 6, 'active', 10.0, 0.03);    -- hamster

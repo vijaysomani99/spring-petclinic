@@ -171,10 +171,7 @@ class PetController {
 		this.owners.save(owner);
 	}
 
-	// In
-	// `spring-petclinic/src/main/java/org/springframework/samples/petclinic/owner/PetController.java`
-
-	@PostMapping("/v1/pets")
+	@PostMapping("/v1/pets/new")
 	public ResponseEntity<Optional<Pet>> createPetData(@PathVariable("ownerId") int ownerId,
 			@Valid @RequestBody Pet petDto) {
 		Optional<Owner> ownerOpt = owners.findById(ownerId);
